@@ -150,6 +150,7 @@ def inference_video_file(input_file, output_dir, interval, yolov8_detector)->Non
     success = True
     #success, frame = videoCapture.read()
     loop_cnt = 0
+    infer_cnt = 0
     while success:
         success, frame = videoCapture.read() #获取下一帧
         #cv2.imshow('windows', frame) #显示
@@ -161,21 +162,28 @@ def inference_video_file(input_file, output_dir, interval, yolov8_detector)->Non
         boxes, scores, class_ids = yolov8_detector(frame)
         # Draw detections
         combined_img = yolov8_detector.draw_detections(frame)
-        save_file = os.path.join(output_dir, file_path.split('/')[-1] + '_' + str(loop_cnt).zfill(10) + '.jpg')
+        save_file = os.path.join(output_dir, file_path.split('/')[-1] + '_' + str(infer_cnt).zfill(20) + '.jpg')
+        infer_cnt += 1
         cv2.imwrite(save_file, combined_img)
         prGreen('Save inference result: {}'.format(save_file))
         #print(loop_cnt)
-    prGreen('Inference images count:{}'.format(loop_cnt))
+    prGreen('Read images count: {}, inference images count:{}'.format(loop_cnt, infer_cnt))
     videoCapture.release()
     return
 
 
 def deal_input_file(input_file, output_dir, interval, yolov8_detector)->None:
     file_path, file_type = os.path.splitext(input_file)
+    if file_path.split('/')[-1] == '.gitignore':
+        prGreen('It is a \'.gitignore\' file, return')
+        return
     if file_type in ('.jpg', '.png'):
         inference_img(input_file, output_dir, yolov8_detector)
-    if file_type in ('.mp4'):
+    elif file_type in ('.mp4'):
         inference_video_file(input_file, output_dir, interval, yolov8_detector)
+    else:
+        prYellow('file_type({}) not support, return'.format(file_type))
+        return
     return
 
 
@@ -194,13 +202,14 @@ def main_func(args = None):
         for root, dirs, files in os.walk(args.input):
             for lop_file in files:
                 deal_file = os.path.join(root, lop_file)
-                print(deal_file)
+                #print(deal_file)
                 deal_input_file(deal_file, args.output_dir, args.interval, yolov8_detector)
     elif os.path.isfile(args.input):
         #print("it's a normal file")
         deal_input_file(args.input, args.output_dir, args.interval, yolov8_detector)
     else:
         prRed(skk)("it's a special file(socket,FIFO,device file)")
+        return
     return
 
 
